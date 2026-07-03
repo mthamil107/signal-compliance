@@ -1,0 +1,30 @@
+In-Band Signal Compliance (IBSC) / signalbench
+Copyright 2026 Thamilvendhan Munirathinam
+
+This product includes software developed by
+Thamilvendhan Munirathinam (https://github.com/mthamil107).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+------------------------------------------------------------------------------
+Attribution and prior work
+------------------------------------------------------------------------------
+
+The five signal families in this benchmark mirror and generalize the author's
+prior work as well as external benchmarks. Please cite the corresponding work
+when using or discussing a specific family:
+
+  - time         mirrors GroundClock / NowBench (paper in preparation)
+  - access-deny  mirrors "Will the Agent Recuse Itself?" (arXiv:2606.06460)
+  - memory-label mirrors memorywire (arXiv:2606.01138)
+  - injection    mirrors "Beyond Pattern Matching" (arXiv:2604.18248) and the
+                 external InjecAgent benchmark (arXiv:2403.02691,
+                 github.com/uiuc-kang-lab/InjecAgent)
+  - bot-policy   mirrors ai-bot-shield
+
+"In-Band Signal Compliance" and "IBSC" are used here as descriptive framework
+names. No trademark rights are asserted.

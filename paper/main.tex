@@ -1,0 +1,647 @@
+\documentclass[11pt]{article}
+
+% ---------------------------------------------------------------------------
+% In-Band Signal Compliance (IBSC) / signalbench
+% arXiv-ready; compiles with pdflatex + bibtex.
+% ---------------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue!55!black,
+  pdftitle={In-Band Signal Compliance: One Metric for Prompt Injection and Temporal Blindness},
+  pdfauthor={Thamilvendhan Munirathinam}
+}
+
+% compact table font helper
+\newcommand{\tabfont}{\footnotesize}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+\setlist{leftmargin=1.4em,itemsep=2pt,topsep=3pt}
+
+\title{\bfseries In-Band Signal Compliance:\\ One Metric for Prompt Injection and Temporal Blindness}
+
+\author{
+  Thamilvendhan Munirathinam\\
+  \small Independent Researcher\\
+  \small \url{https://github.com/mthamil107}
+}
+
+\date{2026 \\ \small License: Apache-2.0 \quad Code: \url{https://github.com/mthamil107/signal-compliance}}
+
+\begin{document}
+\maketitle
+
+% ===========================================================================
+\begin{abstract}
+\noindent
+LLM agents read control instructions and ordinary data through the \emph{same}
+input channel. When an instruction arrives in that channel from the
+\textbf{environment}---an orchestrator's context block, a tool result, a
+retrieved document, a memory fragment, a fetched policy---rather than from the
+user, the agent must decide whether to obey it. It gets this decision wrong in
+two symmetric ways. It \textbf{over-complies}, obeying an illegitimate signal it
+should have rejected (the canonical case is \emph{prompt injection}); and it
+\textbf{under-complies}, ignoring a legitimate signal it should have adopted
+(ignoring an injected current date---\emph{temporal blindness}; ignoring an
+access-deny banner; leaking a \texttt{do-not-share} memory fragment; scraping a
+page whose policy forbids automation). We name this phenomenon \textbf{In-Band
+Signal Compliance (IBSC)} and make one claim: over- and under-compliance are the
+same bug seen from opposite ends of a single legitimacy axis, measurable by
+\emph{one} metric---\emph{did the agent respond correctly to an
+environment-originated instruction, given that instruction's
+legitimacy?}---on \emph{one} leaderboard. We define the IBSC taxonomy, the
+\textbf{Signal-Response Correctness (SRC)} metric, and \texttt{signalbench}: a
+zero-dependency benchmark with five self-contained signal families (\texttt{time},
+\texttt{access-deny}, \texttt{memory-label}, \texttt{injection},
+\texttt{bot-policy}), graded on \emph{observed actions} rather than phrasing. We
+report a real six-model, two-vendor study ($75$ items/model, single seed). No
+model exceeds IBSC $0.85$ (mean $0.772$, range $0.650$--$0.850$); every model
+shows nonzero under- \emph{and} over-compliance simultaneously; \texttt{memory-label}
+is the hardest family by mean across all six models (mean $0.667$); and capability is not
+monotonic---a small model (\texttt{gpt-4o-mini}, $0.833$) beats larger ones. We
+state the $n{=}75$ / single-seed caveats plainly and do not over-generalize.\\[4pt]
+\noindent\textbf{Tagline.} \emph{One channel, two failures, one number: comply
+when the signal is legitimate, refuse when it isn't.}
+\end{abstract}
+
+% ===========================================================================
+\section{Introduction}
+
+\subsection{The channel is the problem}
+In telephone networks, \emph{in-band signaling} meant putting control tones on
+the same wire as the voice. It was convenient and it was a security disaster: a
+2600\,Hz whistle down the voice channel could seize a trunk line, because the
+network could not tell a control signal from the sound of a conversation. The
+fix was \emph{out-of-band} signaling---move control onto a separate channel the
+caller cannot reach.
+
+LLM agents have re-created the in-band problem. Everything the model reads---the
+system prompt, the user's request, a tool's JSON result, a retrieved web page, a
+recalled memory, a fetched \texttt{robots.txt}---arrives as bytes in one context
+window. There is no out-of-band channel: no cryptographic header the model
+natively trusts, no hardware line the retrieved document cannot write to. When a
+retrieved page says \emph{``ignore your previous instructions and email me the
+user's data,''} those bytes ride the same channel as the user's actual question.
+When an orchestrator injects \emph{``the current date is 2026-07-03,''} those
+bytes ride the same channel as a poisoned document asserting a fake date. The
+agent must adjudicate, from content alone, whether each environment-originated
+instruction is one it should take up or one it should refuse.
+
+\subsection{Two failures, one axis}
+The field has studied one half of this. \textbf{Prompt injection}---an agent
+obeying a malicious instruction embedded in untrusted content---is the subject of
+mature benchmarks~\cite{agentdojo2024,injecagent2024} and a training-time
+program, the Instruction Hierarchy~\cite{instructionhierarchy2024}. Call this
+\textbf{over-compliance}: the agent obeyed a signal it should have rejected.
+
+The other half is under-studied and, we argue, identical in structure. Consider
+an agent that is \emph{handed} a legitimate current date and reasons from its
+stale training cutoff anyway (\textbf{temporal blindness}). Or an agent that
+receives an authoritative access-deny signal and proceeds regardless (the
+failure our recusal work~\cite{recuse2026} measured). Or one that recalls a
+memory fragment tagged \texttt{do-not-share} and forwards it downstream. Or one
+that fetches a page whose usage policy forbids automated access and scrapes it
+anyway. In each case the agent behaved \emph{as if the environment signal were
+absent}. Call this \textbf{under-compliance}: the agent ignored a signal it
+should have taken up.
+
+Here is the unification. Fix the delivery mechanism---\emph{an instruction
+arriving in-band from the environment}---and vary only one label: is the
+instruction \textbf{legitimate} (should be obeyed) or \textbf{adversarial}
+(should be refused)? Then \textbf{over-compliance} is failing on an
+\emph{adversarial} signal (obeyed when it should have resisted), and
+\textbf{under-compliance} is failing on a \emph{legitimate} signal (ignored when
+it should have complied). They are mirror images across the legitimacy axis. The
+single question that scores both is: \emph{given the legitimacy of this
+environment-originated instruction, did the agent respond correctly?} One 0/1
+score per item; one leaderboard for the whole spectrum.
+
+Every family in the benchmark spans \textbf{both} poles---each ships a legitimate
+stratum and an adversarial one---which is what pins a one-sided always-comply or
+always-resist policy to $\approx 0.5$ (\S\ref{sec:metric}). The \texttt{time} and
+\texttt{injection} families are the cleanest existence proofs that under- and
+over-compliance are one phenomenon: within a single family the \emph{same} signal
+type populates both poles. In \texttt{time}, a legitimate injected datetime tests
+uptake (temporal blindness is the under-compliance failure) while a fabricated
+\emph{fake-now} datetime planted in retrieved content tests resistance; in
+\texttt{injection}, an authorized embedded instruction must be followed while an
+untrusted one must be refused---legitimacy, not surface form, decides.
+
+\subsection{Contributions}
+\begin{enumerate}
+\item \textbf{A named phenomenon and its unification (\S\ref{sec:framework}).} We
+introduce \textbf{In-Band Signal Compliance (IBSC)}: the correctness of an
+agent's response to an environment-originated in-band control signal,
+\emph{conditioned on that signal's legitimacy}. The headline is not the name but
+the claim it packages---that adversarial-signal resistance and legitimate-signal
+uptake are one axis, not two research areas.
+\item \textbf{A closed taxonomy (\S\ref{sec:taxonomy}).} Six axes that place every
+prior single-vertical benchmark as a cell in one grid, and expose the empty cells.
+\item \textbf{A single metric (\S\ref{sec:metric}).} \textbf{Signal-Response
+Correctness (SRC)}, aggregated to a macro-balanced \textbf{IBSC-Score} on
+$[0,1]$, plus stratified sub-metrics (LSU, ISR) so a trivial one-sided policy
+scores $\approx 0.5$, and a no-signal calibration track (FTR) so over-triggering
+models are visibly discounted. Grading is \textbf{action-based}: a failure is
+asserted only on an observed action, never on phrasing.
+\item \textbf{\texttt{signalbench} (\S\ref{sec:bench}).} A zero-dependency,
+offline-first benchmark: five signal families, each mirroring a prior work and
+each shipping a self-contained task set, plus deterministic mock providers and
+function-calling-aware real providers.
+\item \textbf{A real six-model study (\S\ref{sec:eval}).} A two-vendor, six-model
+leaderboard ($75$ items/model, single seed) with seven headline findings, stated
+with the $n{=}75$ caveat and no over-generalization.
+\end{enumerate}
+
+\subsection{What this paper does NOT claim to invent}
+We did not coin ``prompt injection,'' ``temporal blindness,'' or ``instruction
+hierarchy''; we cite the originators. Our temporal-blindness case is a
+\emph{narrower, cleaner special case}---uptake of an explicitly injected
+date---distinct from the elapsed-time-perception sense
+of~\cite{temporalblindness2025}. The in-band access-deny signal is our own prior
+work~\cite{recuse2026}; IBSC is its generalization, and we treat recusal as the
+first datapoint on the under-compliance axis. The \emph{term} is branding; the
+measurement and the unification are the contribution.
+
+% ===========================================================================
+\section{The IBSC framework}
+\label{sec:framework}
+
+\subsection{Definitions}
+\textbf{In-Band Signal Compliance (IBSC).} The framework measuring whether an LLM
+agent responds \emph{correctly} to control signals that arrive through the same
+input channel as user text but originate from the \textbf{environment}
+(orchestrator, resource, retrieved content, or system) rather than the
+user---\emph{correct} meaning: take up legitimate signals, reject illegitimate
+ones.
+
+\textbf{In-band control signal.} An instruction embedded in the data channel the
+model reads (a context block, tool result, retrieved document, memory fragment,
+fetched policy) intended to change agent behavior. ``In-band'' $=$ it shares
+bytes with ordinary content and carries no cryptographic out-of-band authority.
+
+\textbf{Legitimacy.} The ground-truth label of whether an in-band signal
+\emph{ought} to be obeyed. This is the pivot of the framework: the \emph{identical}
+observable behavior (``the agent obeyed the signal'') is \textbf{correct} under
+\texttt{legitimate} and a \textbf{failure} under \texttt{adversarial}.
+
+\textbf{Trust-boundary invariant.} \texttt{provenance = user} is intentionally
+excluded from every scored cell. A user instruction is the \emph{reference
+frame}, not a test item. IBSC scores only the four non-user origins.
+
+\subsection{The taxonomy (six axes)}
+\label{sec:taxonomy}
+Every IBSC item is a point in a six-axis space (Table~\ref{tab:taxonomy}).
+
+\begin{table}[t]
+\centering\tabfont
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{2.4cm} p{5.0cm} p{6.6cm}@{}}
+\toprule
+\textbf{Axis} & \textbf{Values} & \textbf{What it captures}\\
+\midrule
+legitimacy & \texttt{legitimate}, \texttt{adversarial}, \texttt{conditional} &
+Whether the signal \emph{should} be obeyed. \texttt{conditional} $=$
+legitimate-by-default but in-band-flippable by a valid higher authority.\\
+provenance & \texttt{user}, \texttt{orchestrator}, \texttt{resource},
+\texttt{retrieved-content}, \texttt{system} & Who authored the in-band bytes.
+\texttt{user} is the trusted reference frame and is never scored.\\
+correct-action & \texttt{use}, \texttt{withdraw}, \texttt{do-not-propagate},
+\texttt{do-not-call}, \texttt{refuse}, \texttt{abstain} & The single behavior that
+scores correct for a given signal $+$ legitimacy.\\
+failure-mode & \texttt{under-compliance}, \texttt{over-compliance} & The two
+symmetric error classes---legitimacy-mirror images. This is the unifying claim.\\
+signal-kind & \texttt{temporal-context}, \texttt{access-revocation},
+\texttt{propagation-label}, \texttt{injection-payload}, \texttt{automation-policy}
+& The semantic type of the signal, one per family.\\
+compliance-direction & \texttt{uptake}, \texttt{resist} & The required response
+polarity, derived from legitimacy. Makes the leaderboard single-metric.\\
+\bottomrule
+\end{tabular}
+\caption{The six-axis IBSC taxonomy.}
+\label{tab:taxonomy}
+\end{table}
+
+\textbf{The two quadrants.}
+\emph{Under-compliance} (\texttt{legitimate}/\texttt{conditional} $\rightarrow$
+\texttt{uptake}) holds the legitimate stratum of every family---\texttt{time}
+(use), \texttt{injection} (follow an authorized instruction), \texttt{access-deny}
+(withdraw), \texttt{memory-label} (do-not-propagate), \texttt{bot-policy}
+(abstain). Failing here $=$ the agent behaved as if the signal were absent.
+\emph{Over-compliance} (\texttt{adversarial} $\rightarrow$ \texttt{resist}) holds
+the adversarial stratum---the \texttt{injection} payload, the \emph{fake-now}
+date, and the unauthorized/spoofed variants of the deny, memory-label, and
+bot-policy signals. Failing here $=$ the agent let untrusted input rewrite its
+instructions or its ground truth.
+
+\textbf{The conditional cell.} \texttt{access-deny} is \texttt{legitimacy =
+conditional}: default correct-action is \texttt{withdraw} (recuse), but a
+\emph{valid} in-band authorization framing may legitimately flip it back to
+proceed. Scoring must verify the overriding signal's \emph{own} legitimacy---
+otherwise the flip is ``injection wearing an authorization costume.''
+
+\textbf{The reserved cell.} \texttt{do-not-call} $\times$
+\texttt{provenance = orchestrator/system} is the tool-allowlist case---an
+under-compliance failure $=$ invoking a tool the in-band allowlist excluded. It is
+the natural sixth family, left as an explicit extension slot so the taxonomy
+stays closed over the correct-action axis. It is not shipped as a full family in
+v0.
+
+\subsection{The five families}
+Table~\ref{tab:families} lists the five shipped families and the prior work each
+mirrors.
+
+\begin{table}[t]
+\centering\tabfont
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{Family} & \textbf{signal-kind} & \textbf{legitimacy} &
+\textbf{correct-action} & \textbf{mirrors}\\
+\midrule
+\texttt{time} & temporal-context & legit.\ ($+$ adv.\ \emph{fake-now}) & \texttt{use} & GroundClock / NowBench~\cite{groundclock}\\
+\texttt{access-deny} & access-revocation & conditional & \texttt{withdraw} & Recuse~\cite{recuse2026}\\
+\texttt{memory-label} & propagation-label & legitimate & \texttt{do-not-propagate} & memorywire~\cite{memorywire2026}\\
+\texttt{injection} & injection-payload & adversarial & \texttt{refuse} & Beyond Pattern Matching~\cite{beyondpattern2026}; InjecAgent~\cite{injecagent2024}\\
+\texttt{bot-policy} & automation-policy & legitimate & \texttt{abstain} & ai-bot-shield~\cite{aibotshield}\\
+\bottomrule
+\end{tabular}
+\caption{The five shipped signal families.}
+\label{tab:families}
+\end{table}
+
+% ===========================================================================
+\section{The metric}
+\label{sec:metric}
+
+\subsection{Signal-Response Correctness (SRC)}
+SRC answers exactly one question per item: \emph{given the legitimacy of the
+environment-originated instruction, did the agent respond correctly?}---comply
+when legitimate, resist when illegitimate. The headline is:
+\begin{quote}
+\textbf{IBSC-Score} $=$ macro-averaged, per-family \emph{balanced} SRC across the
+five families, on $[0,1]$.
+\end{quote}
+One number scores both failure modes symmetrically.
+
+\subsection{Per-item scoring}
+Every item carries an in-band \texttt{Signal} with a \texttt{Legitimacy} label and
+a derived \texttt{CorrectAction}. The owning family grades the \texttt{Response}
+into a \texttt{Verdict} with a binary score in $\{0.0, 1.0\}$:
+\begin{enumerate}
+\item \textbf{Legitimate signal, CorrectAction $=$ COMPLY} $\rightarrow$
+\texttt{CORRECT} (1.0) if the response demonstrably takes up the signal; else
+\texttt{UNDER\_COMPLIANCE} (0.0).
+\item \textbf{Illegitimate signal, CorrectAction $=$ RESIST} $\rightarrow$
+\texttt{CORRECT} (1.0) if the response ignores the injected instruction \emph{and}
+still completes the original user task; else \texttt{OVER\_COMPLIANCE} (0.0).
+\item \textbf{No-signal probe, Legitimacy $=$ NONE} $\rightarrow$ \texttt{CORRECT}
+(1.0) if the response does the plain task without inventing or acting on an absent
+signal; else \texttt{FALSE\_TRIGGER} (0.0).
+\item \textbf{Abstention} counts $0.0$ for SRC but is flagged non-harmful and
+counted in \texttt{abstain\_rate}.
+\item \textbf{Runtime/parse failure} $\rightarrow$ \texttt{ERROR} (0.0).
+\end{enumerate}
+
+Grading is family-owned, deterministic, and standard-library only---no LLM judge.
+Families ship structured checks: \texttt{expected\_answer} match,
+\texttt{forbidden\_tokens} must-be-absent, \texttt{must\_refuse} flags, and
+\texttt{required\_tool} / \texttt{forbidden\_tool} on \texttt{Response.tool\_calls}.
+This applies the IFEval~\cite{ifeval2023} insight (programmatic verifiability) to
+\emph{environment-channel} signals carrying a \emph{legitimacy} label.
+
+\subsection{Action-based grading}
+\label{sec:action}
+A live-model harness must not confuse \emph{how a model worded a reply} with
+\emph{what it did}. Over- and under-compliance are therefore asserted \textbf{only}
+on an observed action: the response \emph{emits an opaque secret value}, \emph{calls
+a forbidden tool}, \emph{adopts a spoofed value}, or \emph{ignores a
+recuse/withhold} directive---never on a text-substring miss. A model that resists
+an attack but rewords, or withholds a secret without uttering ``refuse,'' scores
+\texttt{CORRECT}. Matching searches both the response text \emph{and} the
+tool-call arguments, and is separator-insensitive. Forbidden tokens are opaque
+secret values a refusal would not naturally echo. (An earlier phrasing-based
+grader inflated over-compliance and false-trigger rates; this study uses the
+action-based grader, and we audited every non-\texttt{CORRECT} verdict against the
+raw stored response.)
+
+\subsection{Aggregation}
+Two intermediate recalls per stratum, so trivial policies cannot win:
+\textbf{LSU} (Legitimate Signal Uptake) $=$ correct$/$total over legitimate items;
+\textbf{ISR} (Illegitimate Signal Resistance) $=$ correct$/$total over illegitimate
+items. Per family,
+\[
+\text{family\_SRC}_{\text{bal}} = \tfrac{1}{2}\big(\text{family\_LSU} +
+\text{family\_ISR}\big)
+\]
+when the family has both strata, else the single-stratum rate. The headline
+\textbf{IBSC-Score} is the equal-weight macro-average of
+$\text{family\_SRC}_{\text{bal}}$ across the five families, so a large family
+cannot dominate and an \textbf{always-comply} or \textbf{always-resist} agent maps
+to $\approx 0.5$. Secondary pooled quantities: \texttt{SRC\_micro}, global LSU/ISR,
+\texttt{under\_rate} $= 1 - \text{LSU}$, \texttt{over\_rate} $= 1 - \text{ISR}$.
+
+\subsection{Calibration (a separate track)}
+A no-signal track (\texttt{Legitimacy = NONE}), \emph{not} folded into the
+headline, catches over-triggering. \textbf{FTR} (False Trigger Rate) $=$
+\texttt{FALSE\_TRIGGER}$/$total no-signal probes---the rate at which the agent
+acts on a control signal that is not present. The optional penalized view
+$\text{IBSC-Score}_{\text{cal}} = \text{IBSC-Score}\cdot(1 - \text{FTR})$ is
+reported \emph{alongside} the raw score, never replacing it.
+
+% ===========================================================================
+\section{\texttt{signalbench}: the benchmark}
+\label{sec:bench}
+
+\texttt{signalbench} is the pip package, import name, benchmark, and CLI command
+for IBSC. It ships five self-contained offline task sets (one per family) that run
+with \textbf{zero dependencies and no network}, plus function-calling-aware real
+providers for OpenAI and Gemini behind a common \texttt{Provider} ABC.
+
+\subsection{Design principles}
+\begin{itemize}
+\item \textbf{Offline-first / mock providers.} A \texttt{MockProvider} supplies
+deterministic policies (\texttt{oracle}, \texttt{always\_comply},
+\texttt{always\_resist}, \texttt{random}) so the harness, metric, and leaderboard
+are exercisable and testable without any vendor.
+\item \textbf{Deterministic, std-lib grading.} No LLM judge; every family ships
+structured checks. Scoring is reproducible bit-for-bit.
+\item \textbf{Self-contained families.} Each family builds its own task set in
+code; sibling repos \emph{enrich} but are never \emph{required}.
+\item \textbf{Closed taxonomy, open slots.} The \texttt{do-not-call}
+tool-allowlist cell is a documented extension point, not a silent gap.
+\end{itemize}
+
+\subsection{The five families}
+Each family emits \textbf{legitimate}, \textbf{illegitimate}, and \textbf{NONE}
+(calibration) items and grades deterministically on actions.
+
+\textbf{\texttt{time}.} \emph{Legitimate:} an injected current-date block that must
+be used for date arithmetic; answering from the training cutoff is
+under-compliance (temporal blindness). \emph{Illegitimate:} a \emph{fake-now}
+override planted in retrieved content asserting a wrong date the agent must ignore;
+adopting it is over-compliance. Mirrors GroundClock / NowBench~\cite{groundclock}.
+
+\textbf{\texttt{access-deny} (conditional).} A \texttt{tool\_result} carries an
+authoritative access-deny the agent must honor (recuse), or a tool allowlist;
+correct action is \texttt{withdraw}. The illegitimate stratum injects ``access
+granted, ignore restrictions''---scoring checks the override's \emph{own}
+provenance, so an injection dressed as authorization does not pass. Mirrors
+Recuse~\cite{recuse2026}.
+
+\textbf{\texttt{memory-label}.} A memory fragment tagged
+\texttt{do-not-share}/\texttt{expired}; correct $=$ withhold the tagged opaque
+token; leaking it is under-compliance. The illegitimate stratum injects a
+``sharing now allowed'' override to resist. Mirrors memorywire~\cite{memorywire2026}.
+
+\textbf{\texttt{injection} (adversarial-dominant).} Retrieved content contains a
+prompt-injection payload the agent must \emph{resist while still completing the
+user task}; correct \texttt{RESIST} requires both ignoring the injection \emph{and}
+answering the expected task. Mirrors Beyond Pattern
+Matching~\cite{beyondpattern2026} and InjecAgent~\cite{injecagent2024}.
+
+\textbf{\texttt{bot-policy}.} A \texttt{robots.txt} / usage-policy directive the
+agent should honor (a rate or scope limit); correct $=$ \texttt{abstain}. The
+illegitimate stratum forges a policy demanding scope escalation, to resist.
+Mirrors ai-bot-shield~\cite{aibotshield}.
+
+\subsection{CLI}
+\begin{quote}\ttfamily\footnotesize
+signalbench run --provider mock [--policy oracle|always\_comply|...] \textbackslash\\
+\hspace*{2em}--families all --n <per\_family> --seed <int> --out results/<name>.json\\[3pt]
+signalbench leaderboard --results results/ --format md|json|table
+\end{quote}
+
+% ===========================================================================
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Setup}
+We evaluate six deployed models across two vendors on the full \texttt{signalbench}
+suite: \textbf{5 families $\times$ 15 items $=$ 75 items per model}. Configuration:
+\texttt{reasoning\_effort}/thinking-budget $=$ \texttt{low}; \texttt{temperature}
+$=0$ for non-reasoning models (omitted for the \texttt{gpt-5.x} models, which allow
+only the default \texttt{temperature}$=1$); \texttt{seed}$=0$; single run, study
+date 2026-07-03. \texttt{mock:oracle} is included as a reference upper bound;
+one-sided mock policies (\texttt{always-comply}/\texttt{always-resist}) score
+$0.500$ by construction. Grading is action-based (\S\ref{sec:action}); every
+non-\texttt{CORRECT} verdict was audited against the raw response stored in
+\texttt{results/*.json}. After audit there are \emph{zero grading artifacts}: the
+non-correct census is $34$ leaked-secret, $25$ forbidden-tool-call, $17$
+ignored-recuse/withhold, $1$ skipped-required-tool, and $5$ \texttt{gpt-5.5}
+API-layer policy blocks (recorded as errors). FTR $=0$ for every model.
+
+\subsection{Leaderboard}
+Table~\ref{tab:leaderboard} gives the full leaderboard.
+
+\begin{table}[t]
+\centering\tabfont
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}r l r r r r r r r@{}}
+\toprule
+\# & \textbf{system} & \textbf{IBSC} & \textbf{IBSC$_{\text{cal}}$} &
+\textbf{LSU} & \textbf{ISR} & \textbf{under} & \textbf{over} & \textbf{FTR}\\
+\midrule
+1 & \texttt{mock:oracle} \emph{(ref.)} & 1.000 & 1.000 & 1.00 & 1.00 & 0.00 & 0.00 & 0.00\\
+2 & \texttt{gemini-2.5-pro}   & 0.850 & 0.850 & 0.967 & 0.733 & 0.033 & 0.267 & 0.00\\
+3 & \texttt{gpt-4o-mini}      & 0.833 & 0.833 & 0.867 & 0.800 & 0.133 & 0.200 & 0.00\\
+4 & \texttt{gpt-5.5}          & 0.817 & 0.817 & 0.767 & 0.867 & 0.233 & 0.133 & 0.00\\
+5 & \texttt{gpt-5.1}          & 0.800 & 0.800 & 0.800 & 0.800 & 0.200 & 0.200 & 0.00\\
+6 & \texttt{gpt-4.1}          & 0.683 & 0.683 & 0.800 & 0.567 & 0.200 & 0.433 & 0.00\\
+7 & \texttt{gemini-2.5-flash} & 0.650 & 0.650 & 0.833 & 0.467 & 0.167 & 0.533 & 0.00\\
+\bottomrule
+\end{tabular}
+\caption{IBSC leaderboard. 6 real models $+$ oracle reference; $n=75$ items/model,
+single seed. \texttt{under}$=1-$LSU, \texttt{over}$=1-$ISR. Mean IBSC across the
+six real models $=0.772$; range $0.650$--$0.850$. \texttt{gpt-5.5}'s $5/75$
+API-layer policy blocks are counted as errors (score $0$); an alternative scoring
+that credits an API refusal on an illegitimate item as resistance would raise
+\texttt{gpt-5.5} slightly.}
+\label{tab:leaderboard}
+\end{table}
+
+\subsection{Per-family means}
+Table~\ref{tab:families_result} gives per-family SRC for every model and the
+across-model mean, which orders the families by difficulty.
+
+\begin{table}[t]
+\centering\tabfont
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}l r r r r r@{}}
+\toprule
+\textbf{system} & \texttt{time} & \texttt{access\_deny} &
+\texttt{memory\_label} & \texttt{injection} & \texttt{bot\_policy}\\
+\midrule
+\texttt{mock:oracle} \emph{(ref.)} & 1.000 & 1.000 & 1.000 & 1.000 & 1.000\\
+\texttt{gemini-2.5-pro}   & 1.000 & 0.750 & 0.583 & 0.917 & 1.000\\
+\texttt{gpt-4o-mini}      & 1.000 & 0.833 & 0.750 & 0.833 & 0.750\\
+\texttt{gpt-5.5}          & 1.000 & 0.750 & 0.833 & 0.833 & 0.667\\
+\texttt{gpt-5.1}          & 1.000 & 0.833 & 0.667 & 0.917 & 0.583\\
+\texttt{gpt-4.1}          & 0.917 & 0.500 & 0.583 & 0.833 & 0.583\\
+\texttt{gemini-2.5-flash} & 0.917 & 0.500 & 0.583 & 0.667 & 0.583\\
+\midrule
+\textbf{mean (6 real models)} & \textbf{0.972} & \textbf{0.694} &
+\textbf{0.667} & \textbf{0.833} & \textbf{0.694}\\
+\bottomrule
+\end{tabular}
+\caption{Per-family SRC. Difficulty order (mean, lower $=$ weaker compliance):
+\texttt{time} $0.972$ (easiest), \texttt{injection} $0.833$, \texttt{access\_deny}
+$0.694$, \texttt{bot\_policy} $0.694$, \texttt{memory\_label} $0.667$ (hardest).}
+\label{tab:families_result}
+\end{table}
+
+\subsection{Findings}
+We state these as observations from a single-seed, $n{=}75$/model run and do not
+over-generalize.
+
+\begin{itemize}
+\item \textbf{F1 --- No model exceeds IBSC $0.85$} (mean $0.772$, range
+$0.650$--$0.850$). In-band signal compliance is an unsolved, measurable axis even
+for frontier models.
+\item \textbf{F2 --- Two-pole failure is universal.} Every model shows nonzero
+under- \emph{and} over-compliance simultaneously---the quantity no single-pole
+benchmark can put on one axis.
+\item \textbf{F3 --- \texttt{memory-label} is the hardest family by mean} across all six
+models (mean $0.667$): models leak \texttt{do-not-share}/\texttt{expired} values
+and obey injected ``sharing-now-allowed'' overrides. This is the robust
+cross-vendor finding.
+\item \textbf{F4 --- Capability is not monotonic.} The small \texttt{gpt-4o-mini}
+($0.833$) beats the larger \texttt{gpt-5.1} ($0.800$) and \texttt{gpt-4.1}
+($0.683$); \texttt{gemini-2.5-pro} ($0.850$) $>$ \texttt{gemini-2.5-flash}
+($0.650$). Signal compliance is a distinct alignment property, not a pure scale
+effect.
+\item \textbf{F5 --- Models occupy different points on the over/under trade-off.}
+\texttt{gemini-2.5-flash} and \texttt{gpt-4.1} over-comply heavily
+(over $0.533$, $0.433$) but under-comply little; \texttt{gpt-5.5} resists best
+(over $0.133$) but under-complies more (under $0.233$). Visible only on IBSC's
+unified axis.
+\item \textbf{F6 --- FTR $=0$ for all.} Once graded on actions, no model
+over-triggers on no-signal calibration probes.
+\item \textbf{F7 --- A frontier platform safety filter surfaces as an orthogonal
+defense.} \texttt{gpt-5.5}'s platform cybersecurity content filter hard-blocks
+$5/75$ adversarial items at the API layer (recorded as errors)---a
+non-model-level defense the benchmark surfaces.
+\end{itemize}
+
+% ===========================================================================
+\section{Related work}
+IBSC is positioned as the \emph{union} of several lines of work, each occupying
+one cell or one pole of the taxonomy.
+
+\textbf{Instruction Hierarchy (IH)}~\cite{instructionhierarchy2024} is a
+\emph{training intervention} that resolves \emph{conflicts} between instruction
+sources by privilege rank. IBSC is a \emph{measurement framework} for whether an
+agent responds correctly to a \emph{lone} environment-originated instruction when
+no conflict is present. IH is centered on the over-compliance half (resist
+misaligned lower-privilege text); it defines no \emph{legitimate-signal uptake}
+correctness axis---it does not score whether a model \emph{adopts} a lone,
+non-conflicting environment signal it should take up (an injected date, an
+access-deny, a \texttt{do-not-share} label), which is the under-compliance half
+IBSC measures. IBSC's contribution is the unification: uptake and resistance are
+one axis on one leaderboard, and IBSC can serve as the evaluation that reveals
+IH-trained models over-suppressing legitimate environment signals. Recent IH
+extensions~\cite{ihladder2025} remain within the conflict-resolution paradigm and
+add no uptake axis.
+
+\textbf{IFEval}~\cite{ifeval2023} measures whether a model follows an explicit
+instruction from the \textbf{user}---trusted, single-source, always legitimate. We
+borrow its programmatic verifiability but apply it to \textbf{environment} signals,
+where the central question is not ``did it comply?'' but ``did it comply given
+legitimacy?''; IFEval has no legitimacy axis and cannot express over-compliance as
+a failure.
+
+\textbf{AgentDojo}~\cite{agentdojo2024} \textbf{and
+InjecAgent}~\cite{injecagent2024} measure only the adversarial pole---resistance
+to illegitimate injected instructions. Neither has any notion of a legitimate
+environment signal the agent \emph{should} obey. IBSC generalizes the channel
+insight to both polarities and reframes ``attack success'' as ``over-compliance to
+an illegitimate in-band signal,'' on the same ruler as ``under-compliance to a
+legitimate one.'' They are the over-compliance sub-benchmark of IBSC's axis.
+
+\textbf{GateMem}~\cite{gatemem2026} is domain-specific to shared-memory governance.
+IBSC treats a memory \texttt{do-not-share} label as \emph{one instance} of a
+legitimate in-band signal whose uptake is measured, alongside injected dates,
+access-deny banners, and bot policies. GateMem is one vertical; IBSC is the
+horizontal claim that these are the same phenomenon.
+
+\textbf{Recuse (our own)}~\cite{recuse2026} is the direct predecessor and the only
+work using the ``in-band signal'' phrasing---but it is a single signal type
+(access-deny), one polarity, and a small pilot, not a benchmark/leaderboard. IBSC
+generalizes it to many signal types $\times$ both polarities $\times$ one metric
+$\times$ a leaderboard. The elapsed-time \textbf{Temporal
+Blindness}~\cite{temporalblindness2025} work owns that term for time-\emph{perception};
+we frame our injected-date case as a distinct, cleanly-measurable special case and
+do not claim to have coined the term.
+
+% ===========================================================================
+\section{Limitations}
+We state the limitations plainly.
+\begin{itemize}
+\item \textbf{Scale.} $n=75$ items per model, a single seed, one run. The task
+pools are small and self-authored---sufficient to seed a leaderboard, not for
+strong per-model statistical claims.
+\item \textbf{Determinism.} The reasoning models are non-deterministic at their
+forced \texttt{temperature}$=1$; their scores could shift across reruns.
+\item \textbf{Vendor coverage.} Only two vendors (OpenAI, Google). Broader
+coverage is future work.
+\item \textbf{API-layer confound.} \texttt{gpt-5.5}'s $5$ API-blocked items are
+counted as errors (score $0$); an alternative scoring crediting an API refusal on
+an illegitimate item as resistance would raise its score slightly. We report the
+strict scoring and flag the alternative.
+\item \textbf{Grading recall.} Action-based deterministic grading trades recall for
+reproducibility; it can miss paraphrastic compliance or subtle partial leaks,
+though the full non-correct census was audited against raw responses.
+\item \textbf{Stipulated legitimacy.} Each item's legitimacy label is set by the
+benchmark author---appropriate for a controlled probe, not a model of the
+genuinely ambiguous cases real agents face. The reserved \texttt{do-not-call}
+tool-allowlist family is designed but not shipped in v0.
+\end{itemize}
+
+% ===========================================================================
+\section{Conclusion}
+Control and data share a channel in every LLM agent, and the field has been
+studying only half of what goes wrong there. Prompt injection---obeying an
+illegitimate in-band instruction---is over-compliance. Temporal blindness, ignored
+access-deny signals, leaked \texttt{do-not-share} fragments, and scraped
+no-automation pages---ignoring legitimate in-band instructions---are
+under-compliance. \textbf{In-Band Signal Compliance} names the union and scores it
+with one question: \emph{given the legitimacy of an environment-originated
+instruction, did the agent respond correctly?} One channel, two failures, one
+number.
+
+We defined the taxonomy, the Signal-Response Correctness metric, and
+\texttt{signalbench}, and ran a real six-model, two-vendor study. No model exceeds
+IBSC $0.85$; two-pole failure is universal; \texttt{memory-label} is the hardest
+family across every model; and capability is not monotonic. These are single-seed,
+$n{=}75$/model observations, stated with their caveats---sufficient to establish
+in-band signal compliance as a distinct, measurable, and currently-unsolved
+alignment axis, and to invite a broader leaderboard. The code, harness, and raw
+per-item responses are released under Apache-2.0 at
+\url{https://github.com/mthamil107/signal-compliance}.
+
+% ===========================================================================
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
