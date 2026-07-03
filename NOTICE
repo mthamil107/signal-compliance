@@ -18,7 +18,7 @@ The five signal families in this benchmark mirror and generalize the author's
 prior work as well as external benchmarks. Please cite the corresponding work
 when using or discussing a specific family:
 
-  - time         mirrors GroundClock / NowBench (paper in preparation)
+  - time         mirrors GroundClock / NowBench (github.com/mthamil107/groundclock)
   - access-deny  mirrors "Will the Agent Recuse Itself?" (arXiv:2606.06460)
   - memory-label mirrors memorywire (arXiv:2606.01138)
   - injection    mirrors "Beyond Pattern Matching" (arXiv:2604.18248) and the

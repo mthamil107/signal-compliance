@@ -40,7 +40,7 @@ in isolation. See "Claims NOT yet supported."
 - **Caveat:** that work is about *perceiving elapsed time*, not about ignoring an explicitly
   *injected* date. IBSC's `time` family narrows this to injected-date uptake, a distinct,
   cleanly-measurable special case. **We do NOT claim to coin "temporal blindness."**
-- Sibling repo GroundClock / NowBench (D:/Repo/LLM-Time-Memory, paper in preparation) is the
+- Sibling repo GroundClock / NowBench (github.com/mthamil107/groundclock) is the
   temporal-uptake foundation IBSC's `time` family mirrors.
 
 ### C3 — In-band access-deny signals can drive recusal (the under-compliance seed). VERIFIED (author's own).

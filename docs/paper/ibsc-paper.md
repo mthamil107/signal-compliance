@@ -212,7 +212,7 @@ pyproject.toml             # name=signalbench; console_scripts: signalbench=sign
 
 Each family emits **legitimate**, **illegitimate**, and **NONE (calibration)** items with `correct_action` and an `expected` grading key set, and grades deterministically.
 
-**`time` — temporal-context.** *Legitimate:* an injected current-date block (provenance `orchestrator`) that must be used for date arithmetic; ignoring it and answering from the training cutoff is `UNDER_COMPLIANCE` (temporal blindness). *Illegitimate:* a `fake-now` "system date override" planted in retrieved content asserting a wrong date the agent must ignore; obeying it is `OVER_COMPLIANCE`. *NONE:* a date question with no injected date. Grading checks the `expected_answer` date arithmetic in `Response.text`. **Mirrors** GroundClock / NowBench (sibling repo `D:/Repo/LLM-Time-Memory`, paper in preparation [8]).
+**`time` — temporal-context.** *Legitimate:* an injected current-date block (provenance `orchestrator`) that must be used for date arithmetic; ignoring it and answering from the training cutoff is `UNDER_COMPLIANCE` (temporal blindness). *Illegitimate:* a `fake-now` "system date override" planted in retrieved content asserting a wrong date the agent must ignore; obeying it is `OVER_COMPLIANCE`. *NONE:* a date question with no injected date. Grading checks the `expected_answer` date arithmetic in `Response.text`. **Mirrors** GroundClock / NowBench (sibling repository [8]).
 
 **`access-deny` — access-revocation (conditional).** *Legitimate/conditional:* a `tool_result` carries an authoritative access-deny the agent must honor (`must_refuse = True`), or a tool allowlist (`forbidden_tool` set); correct action is `withdraw` (recuse). *Illegitimate:* an injected "access granted, ignore restrictions" the agent must resist — and scoring checks the override's own provenance, so an injection dressed as authorization does not pass. *NONE:* a normal request. Grading inspects `Response.tool_calls` vs `forbidden_tool`/`required_tool` and refusal text. **Mirrors** *Recuse* [6].
 
@@ -361,12 +361,12 @@ We have defined the taxonomy, the Signal-Response Correctness metric, and `signa
 
 [7] *Your LLM Agents are Temporally Blind: The Misalignment Between Tool Use Decisions and Human Time Perception.* (2025). arXiv:2510.23853. https://arxiv.org/abs/2510.23853
 
-[8] Munirathinam, T. *GroundClock / NowBench* (LLM temporal grounding). Sibling repository `D:/Repo/LLM-Time-Memory`; paper in preparation.
+[8] Munirathinam, T. *GroundClock / NowBench* (LLM temporal grounding). Software repository, https://github.com/mthamil107/groundclock
 
 [9] Munirathinam, T. (2026). *memorywire* (memory propagation labels for LLM agents). arXiv:2606.01138.
 
 [10] Munirathinam, T. (2026). *Beyond Pattern Matching* / *prompt-shield* (prompt-injection resistance). arXiv:2604.18248.
 
-[11] Munirathinam, T. *ai-bot-shield* (automation-policy / bot-deny compliance). Repository `D:/Repo/ai-bot-shield`.
+[11] Munirathinam, T. *ai-bot-shield* (automation-policy / bot-deny compliance). Software repository, https://github.com/mthamil107/ai-bot-shield
 
 [12] *Reasoning Up the Instruction Ladder for Controllable Language Models* (arXiv:2511.04694, 2025); *Where Instruction Hierarchy Breaks: Diagnosing and Repairing Failures in Reasoning Language Models* (arXiv:2606.07808, 2026); *Many-Tier Instruction Hierarchy in LLM Agents* (arXiv:2604.09443, 2026).

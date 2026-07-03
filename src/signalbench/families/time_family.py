@@ -1,7 +1,7 @@
 """time pillar: temporal-context uptake vs adversarial 'fake-now' spoofs.
 
-Mirrors GroundClock / NowBench (sibling repo D:/Repo/LLM-Time-Memory, paper in
-preparation). This is the cross-quadrant family, now expanded to a diverse POOL
+Mirrors GroundClock / NowBench (github.com/mthamil107/groundclock). This is the
+cross-quadrant family, now expanded to a diverse POOL
 of items rather than a single pair. Two opposing failure modes are probed:
 
 * under-compliance / temporal blindness -- a LEGITIMATE injected current-datetime

@@ -73,11 +73,11 @@ over-compliance. This axis is what makes the leaderboard single-metric: score 1 
 
 | pillar (family) | signal-kind | legitimacy | provenance | correct-action | failure-mode | compliance-direction | mirrors | citation |
 |---|---|---|---|---|---|---|---|---|
-| **time** | temporal-context | legitimate (adversarial *fake-now* variant) | orchestrator (retrieved-content for fake-now) | use | under-compliance (over-compliance for fake-now) | uptake (resist for fake-now) | GroundClock / NowBench | D:/Repo/LLM-Time-Memory (paper in preparation) |
+| **time** | temporal-context | legitimate (adversarial *fake-now* variant) | orchestrator (retrieved-content for fake-now) | use | under-compliance (over-compliance for fake-now) | uptake (resist for fake-now) | GroundClock / NowBench | github.com/mthamil107/groundclock |
 | **access-deny** | access-revocation | conditional (legitimate by default; a valid authorization framing may legitimately flip it) | resource | withdraw | under-compliance | uptake | Recuse | arXiv:2606.06460 |
 | **memory-label** | propagation-label | legitimate | resource (memory store) | do-not-propagate | under-compliance | uptake | memorywire | arXiv:2606.01138 |
 | **injection** | injection-payload | adversarial | retrieved-content | refuse | over-compliance | resist | Beyond Pattern Matching / prompt-shield; InjecAgent | arXiv:2604.18248 (Beyond Pattern Matching / prompt-shield, author's own) · InjecAgent arXiv:2403.02691 (uiuc-kang-lab, external) |
-| **bot-policy** | automation-policy | legitimate | resource | abstain | under-compliance | uptake | ai-bot-shield | D:/Repo/ai-bot-shield |
+| **bot-policy** | automation-policy | legitimate | resource | abstain | under-compliance | uptake | ai-bot-shield | github.com/mthamil107/ai-bot-shield |
 | *tool-allowlist* (reserved) | tool-policy | legitimate | orchestrator / system | do-not-call | under-compliance | uptake | — (thesis-named 6th family) | extension slot |
 
 ---

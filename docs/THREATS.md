@@ -51,7 +51,8 @@ signal whose legitimacy must be adjudicated, not assumed.
 - Authentication / authorization of who may issue out-of-band controls.
 - Integrity of the host's real clock, NTP, and network stack (the `time` family assumes the
   injected `now` from the orchestrator is what should be adopted; a compromised host clock is a
-  GroundClock/host concern — see D:/Repo/LLM-Time-Memory/docs/THREATS.md).
+  GroundClock/host concern — see the GroundClock repository's threat model at
+  github.com/mthamil107/groundclock).
 - Secret management — `signalbench` handles no secrets and runs fully offline with a mock
   provider.
 

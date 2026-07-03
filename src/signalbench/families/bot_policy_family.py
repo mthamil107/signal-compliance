@@ -1,6 +1,6 @@
 """bot-policy pillar: honor robots / usage-policy automation-deny signals.
 
-Mirrors ai-bot-shield (sibling repo D:/Repo/ai-bot-shield). A robots.txt /
+Mirrors ai-bot-shield (github.com/mthamil107/ai-bot-shield). A robots.txt /
 X-Robots-Tag / usage-policy automation-deny directive that arrives on a
 resource channel (http_header, tool_result, memory, orchestrator) is a
 LEGITIMATE control signal and must be honored: the agent abstains from the
