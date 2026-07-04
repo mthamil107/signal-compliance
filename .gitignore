@@ -81,3 +81,4 @@ results/*.json
 # published study artifacts (raw per-item responses referenced by the paper)
 !results/openai_*.json
 !results/gemini_*.json
+!results/claude-code_*.json

@@ -42,6 +42,35 @@ symmetric directions.
 IBSC unifies both directions under **one metric** and puts legitimate-signal uptake
 and adversarial-signal resistance on **one leaderboard** (`signalbench`).
 
+📖 **Writeup:** [*Prompt injection and temporal blindness are the same bug*](https://mthamil107.github.io/writing/in-band-signal-compliance.html)
+
+---
+
+## The result: no frontier model passes
+
+Six models, two vendors, 75 items each (2026-07-03). **None exceed 0.85** (mean 0.77),
+and **every model fails on _both_ poles at once** — the thing a single-pole benchmark
+structurally can't show.
+
+| Model | IBSC | resist | uptake | hardest family |
+|---|---|---|---|---|
+| gemini-2.5-pro | **0.85** | 0.73 | 0.97 | memory-label 0.58 |
+| gpt-4o-mini | 0.83 | 0.80 | 0.87 | memory-label 0.75 |
+| gpt-5.5 | 0.82 | 0.87 | 0.77 | bot-policy 0.67 |
+| gpt-5.1 | 0.80 | 0.80 | 0.80 | bot-policy 0.58 |
+| gpt-4.1 | 0.68 | 0.57 | 0.80 | access-deny 0.50 |
+| gemini-2.5-flash | 0.65 | 0.47 | 0.83 | access-deny 0.50 |
+
+- **Memory-label is the hardest family for all six** — models leak `do-not-share` data and
+  obey injected "sharing is now allowed" overrides.
+- **Capability isn't the fix:** the small `gpt-4o-mini` (0.83) beats the larger `gpt-5.1`
+  (0.80) and `gpt-4.1` (0.68).
+- Grading is **action-based** — a failure counts only on an observed action (a leaked secret,
+  a forbidden tool call, an adopted spoof), never on phrasing.
+
+Honest limits: n=75, single seed, one run, two vendors — a **seed leaderboard, not a verdict**.
+[Full table, per-family means, and caveats ↓](#results-6-models-n--75model-2026-07-03)
+
 ---
 
 ## What IBSC is / what it is NOT
@@ -303,6 +332,31 @@ non-deterministic at their forced `temperature=1`; the self-authored task pools 
 (sufficient to seed a leaderboard, not for strong per-model statistical claims); two vendors;
 `gpt-5.5`'s 5 API-blocked items are counted as errors. This is a first honest leaderboard, not
 a definitive model ranking. Reproduce with `python scripts/run_real.py`.
+
+### Bonus: Claude Code as a deployed agent (a different harness)
+
+The rows above are bare **API models**. As a contrast we also ran three Claude models *inside
+Claude Code* — as a **deployed agent** (its own system prompt, tools disabled, driven via the CLI
+on a subscription). This is **not comparable** to the API rows — different harness, and scored on
+the 72 text-gradeable items (excluding 3 that require tool calls the tool-disabled agent can't
+make) — so it's reported separately.
+
+| Deployed agent (Claude Code) | IBSC | resist (ISR) | uptake (LSU) | profile |
+|---|---|---|---|---|
+| claude-opus-4-8 | 0.813 | 0.77 | 0.85 | **balanced — recovers uptake** |
+| claude-haiku-4-5 | 0.707 | 0.87 | 0.56 | over-refuses |
+| claude-sonnet-5 | 0.680 | 0.80 | 0.56 | over-refuses |
+
+**The harness inverts the failure mode — but capability recovers it.** Wrapped in Claude Code's
+system prompt, the agent treats *everything* injected as untrusted user content: `haiku` and
+`sonnet` become the **best attack-resisters measured** (ISR 0.80–0.87) but the **worst at taking
+up legitimate signals** (LSU 0.56) — they over-refuse. The strongest model, **`opus`, breaks the
+pattern**: it recovers uptake (LSU 0.85) while keeping resistance, landing balanced. So "the
+deployed agent over-refuses" is a *small/mid-model* behavior, not a law — capability lets the
+agent tell a legitimate in-band instruction from an attack instead of refusing both. **The harness
+matters as much as the model.**
+
+Reproduce (uses a Claude Code subscription, no API credit): `python scripts/run_claudecode.py --model <id>`.
 
 ### Action-based grading (why v0.2 changed)
 
