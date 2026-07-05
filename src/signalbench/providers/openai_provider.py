@@ -77,6 +77,7 @@ class OpenAIProvider(Provider):
         temperature: float = 0.0,
         timeout: float = 60.0,
         reasoning_effort: str | None = None,
+        base_url: str = _ENDPOINT,
     ):
         self.model = model
         self.name = f"openai:{model}"
@@ -84,6 +85,7 @@ class OpenAIProvider(Provider):
         self.temperature = temperature
         self.timeout = timeout
         self.reasoning_effort = reasoning_effort
+        self.base_url = base_url  # any OpenAI-compatible /chat/completions endpoint
 
     def complete(self, item: Item) -> Response:
         if not self._api_key:
@@ -107,7 +109,7 @@ class OpenAIProvider(Provider):
         headers = {"Authorization": f"Bearer {self._api_key}"}
         t0 = time.time()
         try:
-            data = post_json(_ENDPOINT, payload, headers, timeout=self.timeout)
+            data = post_json(self.base_url, payload, headers, timeout=self.timeout)
         except Exception as exc:
             # Some models (e.g. gpt-5.5) reject reasoning_effort + function tools
             # together on /chat/completions. Fall back to the same request
@@ -116,7 +118,7 @@ class OpenAIProvider(Provider):
             if "reasoning_effort" in msg and "tools" in payload and "reasoning_effort" in payload:
                 payload.pop("reasoning_effort", None)
                 try:
-                    data = post_json(_ENDPOINT, payload, headers, timeout=self.timeout)
+                    data = post_json(self.base_url, payload, headers, timeout=self.timeout)
                 except Exception as exc2:
                     return Response(item_id=item.item_id, text="", error=str(exc2))
             else:
