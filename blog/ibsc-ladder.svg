@@ -1,0 +1,78 @@
+<svg viewBox="0 0 640 420" width="100%" height="auto" role="img" aria-labelledby="ttl desc" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title id="ttl">Capability recovers uptake: the deployed-agent over-refusal is a small-model effect</title>
+  <desc id="desc">One-axis slopegraph (rate 0.4 to 1.0) for three Claude Code deployed-agent models ordered by capability (haiku-4-5, sonnet-5, opus-4-8). Amber line is uptake (LSU): 0.56, 0.56, 0.85 — flat-low at the small models then jumping up at opus. Blue line is resistance (ISR): 0.87, 0.80, 0.77 — staying high and roughly flat. Opus closes the gap by recovering uptake while keeping resistance high.</desc>
+
+  <text x="16" y="21" font-size="15" font-weight="700" fill="#1a1a1a">Capability recovers uptake: the deployed-agent over-refusal is a small-model effect</text>
+
+  <g font-size="12" fill="#666">
+    <circle cx="64" cy="40" r="6" fill="#d97706"/>
+    <text x="75" y="44">uptake (LSU)</text>
+    <circle cx="196" cy="40" r="6" fill="#2b6cb0"/>
+    <text x="207" y="44">resistance (ISR)</text>
+  </g>
+
+  <g stroke="#e6e6e6" stroke-width="1">
+    <line x1="56" y1="60" x2="550" y2="60"/>
+    <line x1="56" y1="111" x2="550" y2="111"/>
+    <line x1="56" y1="162" x2="550" y2="162"/>
+    <line x1="56" y1="213" x2="550" y2="213"/>
+    <line x1="56" y1="264" x2="550" y2="264"/>
+    <line x1="56" y1="315" x2="550" y2="315"/>
+    <line x1="56" y1="366" x2="550" y2="366"/>
+  </g>
+
+  <g stroke="#e6e6e6" stroke-width="1">
+    <line x1="130" y1="60" x2="130" y2="366"/>
+    <line x1="303" y1="60" x2="303" y2="366"/>
+    <line x1="476" y1="60" x2="476" y2="366"/>
+  </g>
+
+  <g font-size="12" fill="#666" text-anchor="end">
+    <text x="48" y="64">1.0</text>
+    <text x="48" y="115">0.9</text>
+    <text x="48" y="166">0.8</text>
+    <text x="48" y="217">0.7</text>
+    <text x="48" y="268">0.6</text>
+    <text x="48" y="319">0.5</text>
+    <text x="48" y="370">0.4</text>
+  </g>
+
+  <!-- ISR (resistance) series, blue -->
+  <polyline points="130,126.3 303,162 476,177.3" fill="none" stroke="#2b6cb0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- LSU (uptake) series, amber -->
+  <polyline points="130,284.4 303,284.4 476,136.5" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ISR dots -->
+  <g fill="#2b6cb0" stroke="#ffffff" stroke-width="2">
+    <circle cx="130" cy="126.3" r="7"><title>claude-haiku-4-5: ISR=0.87, LSU=0.56, IBSC=0.707</title></circle>
+    <circle cx="303" cy="162" r="7"><title>claude-sonnet-5: ISR=0.80, LSU=0.56, IBSC=0.680</title></circle>
+    <circle cx="476" cy="177.3" r="7"><title>claude-opus-4-8: ISR=0.77, LSU=0.85, IBSC=0.813</title></circle>
+  </g>
+  <!-- LSU dots -->
+  <g fill="#d97706" stroke="#ffffff" stroke-width="2">
+    <circle cx="130" cy="284.4" r="7"><title>claude-haiku-4-5: ISR=0.87, LSU=0.56, IBSC=0.707</title></circle>
+    <circle cx="303" cy="284.4" r="7"><title>claude-sonnet-5: ISR=0.80, LSU=0.56, IBSC=0.680</title></circle>
+    <circle cx="476" cy="136.5" r="7"><title>claude-opus-4-8: ISR=0.77, LSU=0.85, IBSC=0.813</title></circle>
+  </g>
+
+  <!-- point value labels -->
+  <g font-size="12" fill="#1a1a1a">
+    <!-- ISR values (blue points) -->
+    <text x="120" y="122" text-anchor="end">0.87</text>
+    <text x="303" y="151" text-anchor="middle">0.80</text>
+    <text x="487" y="181" text-anchor="start" font-weight="700">ISR 0.77</text>
+    <!-- LSU values (amber points) -->
+    <text x="120" y="288" text-anchor="end">0.56</text>
+    <text x="303" y="304" text-anchor="middle">0.56</text>
+    <text x="487" y="140" text-anchor="start" font-weight="700">LSU 0.85</text>
+  </g>
+
+  <!-- x category labels -->
+  <g font-size="12.5" fill="#666" text-anchor="middle">
+    <text x="130" y="386">haiku-4-5</text>
+    <text x="303" y="386">sonnet-5</text>
+    <text x="476" y="386">opus-4-8</text>
+  </g>
+
+  <text x="303" y="409" text-anchor="middle" font-size="12" fill="#666" font-style="italic">Claude Code (deployed agent), by model capability</text>
+</svg>

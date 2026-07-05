@@ -94,6 +94,26 @@ One aside worth reporting honestly: `gpt-5.5`'s platform safety filter *hard-blo
 surface. And false-trigger rate (refusing a benign no-signal probe) was **zero** for every
 model once grading was action-based — the earlier nonzero rates were the phrasing artifact.
 
+## Bonus: the harness matters as much as the model
+
+The six leaderboard rows above are **bare API models** — prompts in, completions out. As a contrast, we also ran three Claude models *inside Claude Code*: as a deployed agent, with its own system prompt and tools disabled, driven on a subscription. That is a **different harness**, so we score it on the 72 text-gradeable items (3 tool-only items excluded) and report it **separately** — never merged with the API board.
+
+![Two failure modes: resistance (x) vs uptake (y), all systems](ibsc-scatter.svg)
+
+The result is striking. Wrapped in Claude Code's system prompt, the agent treats everything injected as untrusted. So `claude-haiku-4-5` and `claude-sonnet-5` become the **best attack-resisters we measured** (ISR 0.80–0.87) — but the **worst at taking up legitimate signals** (LSU 0.56). They over-refuse. `claude-opus-4-8` breaks the pattern: it recovers uptake (LSU 0.85) while keeping resistance high, landing balanced.
+
+| Deployed agent | ISR ↑ | LSU ↑ | IBSC |
+|---|---|---|---|
+| claude-opus-4-8 | 0.770 | **0.850** | **0.813** |
+| claude-haiku-4-5 | **0.870** | 0.560 | 0.707 |
+| claude-sonnet-5 | 0.800 | 0.560 | 0.680 |
+
+![Capability recovers uptake across the Claude ladder](ibsc-ladder.svg)
+
+So "the deployed agent over-refuses" is a **small/mid-model effect, not a law**. Capability is what lets the agent tell a legitimate in-band instruction apart from an attack. The one-line takeaway: **the harness matters as much as the model.**
+
+---
+
 ## What I'm *not* claiming
 
 This is a **seed leaderboard, not a statistical verdict**: n=75 per model, a single seed, one
