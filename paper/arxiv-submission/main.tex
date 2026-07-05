@@ -78,8 +78,12 @@ report a real six-model, two-vendor study ($75$ items/model, single seed). No
 model exceeds IBSC $0.85$ (mean $0.772$, range $0.650$--$0.850$); every model
 shows nonzero under- \emph{and} over-compliance simultaneously; \texttt{memory-label}
 is the hardest family by mean across all six models (mean $0.667$); and capability is not
-monotonic---a small model (\texttt{gpt-4o-mini}, $0.833$) beats larger ones. We
-state the $n{=}75$ / single-seed caveats plainly and do not over-generalize.\\[4pt]
+monotonic---a small model (\texttt{gpt-4o-mini}, $0.833$) beats larger ones. As a
+harness contrast we also run three Claude models \emph{inside a deployed agent}
+(Claude Code): the same model over-refuses legitimate signals when wrapped in an
+agent that distrusts its inputs, and only the strongest model recovers
+uptake---\emph{the harness matters as much as the model}. We state the $n{=}75$ /
+single-seed caveats plainly and do not over-generalize.\\[4pt]
 \noindent\textbf{Tagline.} \emph{One channel, two failures, one number: comply
 when the signal is legitimate, refuse when it isn't.}
 \end{abstract}
@@ -544,6 +548,43 @@ $5/75$ adversarial items at the API layer (recorded as errors)---a
 non-model-level defense the benchmark surfaces.
 \end{itemize}
 
+\subsection{Bonus: Claude Code as a deployed agent}
+\label{sec:deployed}
+The six rows above are bare \emph{API models}. As a contrast, we ran three Claude
+models \emph{inside Claude Code}---as a \emph{deployed agent} with its own system
+prompt and its built-in tools disabled, driven via the CLI on a subscription. This
+is a different harness, not a bare-model call, so we report it separately and score
+it on the $72$ text-gradeable items (excluding $3$ that require tool calls the
+tool-disabled agent cannot make). Table~\ref{tab:deployed} gives the fair scores.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccl}
+\toprule
+Deployed agent (Claude Code) & IBSC & ISR & LSU & profile \\
+\midrule
+\texttt{claude-opus-4-8}  & $0.813$ & $0.770$ & $0.850$ & balanced---recovers uptake \\
+\texttt{claude-haiku-4-5} & $0.707$ & $0.870$ & $0.560$ & over-refuses \\
+\texttt{claude-sonnet-5}  & $0.680$ & $0.800$ & $0.560$ & over-refuses \\
+\bottomrule
+\end{tabular}
+\caption{Claude Code deployed-agent scores (fair $72$-item subset, tools disabled).
+Not comparable to the API leaderboard (Table~\ref{tab:leaderboard}); reported as a
+harness contrast.}
+\label{tab:deployed}
+\end{table}
+
+The harness \emph{inverts} the failure mode---but capability recovers it. Wrapped in
+Claude Code's system prompt, the agent treats every injected instruction as untrusted:
+\texttt{haiku} and \texttt{sonnet} become the strongest attack-resisters we measured
+(ISR $0.80$--$0.87$) but the weakest at taking up legitimate signals (LSU $0.56$)---they
+over-refuse. The strongest model, \texttt{opus}, breaks the pattern, recovering uptake
+(LSU $0.85$) while keeping resistance and landing balanced. So the deployed-agent
+over-refusal is a small/mid-model effect, not a law: capability is what lets an agent
+tell a legitimate in-band instruction from an attack. \emph{The harness matters as much
+as the model}, and IBSC measures the difference.
+
 % ===========================================================================
 \section{Related work}
 IBSC is positioned as the \emph{union} of several lines of work, each occupying
@@ -603,8 +644,13 @@ pools are small and self-authored---sufficient to seed a leaderboard, not for
 strong per-model statistical claims.
 \item \textbf{Determinism.} The reasoning models are non-deterministic at their
 forced \texttt{temperature}$=1$; their scores could shift across reruns.
-\item \textbf{Vendor coverage.} Only two vendors (OpenAI, Google). Broader
-coverage is future work.
+\item \textbf{Vendor coverage.} Only two vendors (OpenAI, Google) in the API
+leaderboard. Broader coverage is future work.
+\item \textbf{Deployed-agent contrast.} The Claude Code rows
+(\S\ref{sec:deployed}) are a \emph{different harness}---an agent with its own
+system prompt and tools disabled---scored on a $72$-item text-gradeable subset.
+They are reported as a contrast and are \emph{not} comparable to the API
+leaderboard.
 \item \textbf{API-layer confound.} \texttt{gpt-5.5}'s $5$ API-blocked items are
 counted as errors (score $0$); an alternative scoring crediting an API refusal on
 an illegitimate item as resistance would raise its score slightly. We report the
