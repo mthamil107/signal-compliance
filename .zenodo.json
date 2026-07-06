@@ -1,0 +1,28 @@
+{
+  "title": "In-Band Signal Compliance (IBSC) / signalbench: one metric for prompt injection and temporal blindness",
+  "description": "A benchmark and a single metric (Signal-Response Correctness) that unify over-compliance (prompt injection) and under-compliance (temporal blindness, access-deny, memory-label, bot-policy) for LLM agents into one leaderboard. Includes the zero-dependency signalbench harness, an action-based deterministic grader, results for six frontier models plus a Claude Code deployed-agent contrast, and the raw per-item responses. Apache-2.0.",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "Apache-2.0",
+  "creators": [
+    { "name": "Munirathinam, Thamilvendhan" }
+  ],
+  "keywords": [
+    "LLM agents",
+    "AI safety",
+    "AI security",
+    "prompt injection",
+    "temporal blindness",
+    "benchmark",
+    "in-band signal compliance",
+    "signalbench",
+    "LLM evaluation"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://mthamil107.github.io/writing/in-band-signal-compliance.html",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
+    }
+  ]
+}
