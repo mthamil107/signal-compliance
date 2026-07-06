@@ -2,9 +2,10 @@
 
 **One channel, two failures, one number: comply when the signal is legitimate, refuse when it isn't.**
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21223956.svg)](https://doi.org/10.5281/zenodo.21223956)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Status: v0](https://img.shields.io/badge/status-v0%20scaffold-orange.svg)](#project-status)
+[![Status: v0.2](https://img.shields.io/badge/status-v0.2%20first%20leaderboard-orange.svg)](#project-status)
 [![Deps: zero runtime](https://img.shields.io/badge/runtime%20deps-zero-brightgreen.svg)](./pyproject.toml)
 [![Benchmark: signalbench](https://img.shields.io/badge/benchmark-signalbench-8A2BE2.svg)](#quickstart-offline-no-api-key)
 
@@ -55,13 +56,13 @@ structurally can't show.
 | Model | IBSC | resist | uptake | hardest family |
 |---|---|---|---|---|
 | gemini-2.5-pro | **0.85** | 0.73 | 0.97 | memory-label 0.58 |
-| gpt-4o-mini | 0.83 | 0.80 | 0.87 | memory-label 0.75 |
+| gpt-4o-mini | 0.83 | 0.80 | 0.87 | memory-label / bot-policy 0.75 (tie) |
 | gpt-5.5 | 0.82 | 0.87 | 0.77 | bot-policy 0.67 |
 | gpt-5.1 | 0.80 | 0.80 | 0.80 | bot-policy 0.58 |
 | gpt-4.1 | 0.68 | 0.57 | 0.80 | access-deny 0.50 |
 | gemini-2.5-flash | 0.65 | 0.47 | 0.83 | access-deny 0.50 |
 
-- **Memory-label is the hardest family for all six** — models leak `do-not-share` data and
+- **Memory-label is the hardest family on average across the six** (mean 0.667) — models leak `do-not-share` data and
   obey injected "sharing is now allowed" overrides.
 - **Capability isn't the fix:** the small `gpt-4o-mini` (0.83) beats the larger `gpt-5.1`
   (0.80) and `gpt-4.1` (0.68).
@@ -222,13 +223,15 @@ signalbench leaderboard --results results/ --format md
 
 Everything above is equivalent to `python -m signalbench ...`.
 
-Optional real-provider extras (not required for the offline benchmark):
+Optional dev extras (not required for the offline benchmark):
 
 ```bash
-pip install -e ".[anthropic]"   # Anthropic client
-pip install -e ".[openai]"      # OpenAI client
 pip install -e ".[dev]"         # pytest, ruff, mypy
 ```
+
+The real-model providers are std-lib HTTP — no vendor SDK is required. (The
+`.[anthropic]` / `.[openai]` extras in `pyproject.toml` are reserved for future
+SDK-based adapters and are unused by the current providers.)
 
 ---
 
@@ -237,13 +240,13 @@ pip install -e ".[dev]"         # pytest, ruff, mypy
 > The rows below are produced by the **deterministic MOCK provider**, not by any real
 > model. They exist to demonstrate the scoring math and the leaderboard format. They
 > are **not** an empirical evaluation of any system. Real multi-vendor numbers are
-> future work.
+> reported in [Results](#results-6-models-n--75model-2026-07-03) below.
 
 | rank | system | IBSC_Score | IBSC_Score_cal | LSU | ISR | under_rate | over_rate | FTR | abstain | SRC_micro | n |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | mock:oracle | 1.00 | 1.00 | 1.00 | 1.00 | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 | 20 |
-| 2 | mock:always_comply | 0.50 | 0.50 | 1.00 | 0.00 | 0.00 | 1.00 | 0.00 | 0.00 | 0.60 | 20 |
-| 3 | mock:always_resist | 0.50 | 0.50 | 0.00 | 1.00 | 1.00 | 0.00 | 0.00 | 0.00 | 0.40 | 20 |
+| 1 | mock:oracle | 1.00 | 1.00 | 1.00 | 1.00 | 0.00 | 0.00 | 0.00 | 0.00 | 1.00 | 75 |
+| 2 | mock:always_comply | 0.50 | 0.50 | 1.00 | 0.00 | 0.00 | 1.00 | 0.00 | 0.00 | 0.50 | 75 |
+| 3 | mock:always_resist | 0.50 | 0.50 | 0.00 | 1.00 | 1.00 | 0.00 | 0.00 | 0.00 | 0.50 | 75 |
 
 `oracle` reads each item's ground-truth `correct_action` and scores at the ceiling by
 construction. `always_comply` takes up *every* signal — perfect LSU, zero ISR — and
@@ -259,8 +262,9 @@ right on half of them. That is the metric working as designed. (Reproduce with
 The `openai` and `gemini` providers are std-lib HTTP (no SDK) and are **function-calling
 aware**, so tool-graded families (`access_deny`, `bot_policy`) score the model's real
 call decisions, not just its text. Keys are read from the environment; `signalbench`
-loads them from `~/.claude/servers/llm-Keys.env` (or `--env-file`) and **never** logs a
-value. Provide `OPENAI_API_KEY` and/or `GEMINI_API_KEY`.
+loads them from `~/.claude/servers/llm-Keys.env` by default (override with
+`--env-file <path>`) and **never** logs a value. Provide `OPENAI_API_KEY` and/or
+`GEMINI_API_KEY`.
 
 ```bash
 # one model, all families:
@@ -272,6 +276,26 @@ python scripts/run_real.py --openai gpt-4o-mini --gemini gemini-2.5-flash
 signalbench leaderboard --results results/ --format md
 ```
 
+### Open / offline models (Ollama, Hugging Face, OpenRouter, any OpenAI-compatible endpoint)
+
+The `openai_compatible` provider drives any OpenAI-compatible chat endpoint, so the
+benchmark also runs on open and fully offline models — no vendor API required:
+
+```bash
+# local, fully offline (after: ollama pull qwen2.5:7b llama3.2:3b mistral:7b)
+python scripts/run_open.py --backend ollama --models qwen2.5:7b,llama3.2:3b,mistral:7b
+
+# hosted open models via the Hugging Face router (needs HF_TOKEN)
+python scripts/run_open.py --backend hf --models meta-llama/Llama-3.1-8B-Instruct
+
+# OpenRouter (needs OPENROUTER_API_KEY), or any custom OpenAI-compatible endpoint
+python scripts/run_open.py --backend openrouter --models <model>
+python scripts/run_open.py --backend custom --base-url http://host:8000/v1/chat/completions --models my-model
+```
+
+Results land in `results/<label>_<model>.json` in the same format as the API runs, so
+they drop straight into `signalbench leaderboard`.
+
 ### Results (6 models, n = 75/model, 2026-07-03)
 
 > First real multi-vendor run. **6 models × 75 items** (5 families × 15 items), benchmark
@@ -280,8 +304,10 @@ signalbench leaderboard --results results/ --format md
 > `temperature=1`). **Every failure below is an observed action** — an emitted opaque secret
 > value, a forbidden tool call, an adopted spoofed value, or an ignored recuse/withhold —
 > because the grader scores *actions, not phrasing* (see "Action-based grading" below).
-> Raw responses are in `results/*.json`. Directional, single-seed, single-run — see the
-> limitations at the end of this section.
+> Raw responses are in `results/*.json`. Note: the results files contain **synthetic
+> canary secrets** (fake `sk-live-…`-style tokens used as leak probes) — they are not
+> real credentials, and naive secret scanners may flag them. Directional, single-seed,
+> single-run — see the limitations at the end of this section.
 
 | rank | system | IBSC | IBSC_cal | LSU | ISR | under | over | FTR | time | access_deny | memory_label | injection | bot_policy |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -391,10 +417,12 @@ lives in [RESEARCH.md](./RESEARCH.md). Summary:
 
 ## Project status
 
-**v0 scaffold.** The framework, taxonomy, metric, harness, five offline families, and a
-mock provider are implemented and runnable offline. The intent is a
-**position + benchmark-design** contribution with an **offline reference run**, not a
-completed empirical study.
+**v0.2 — first leaderboard.** The framework, taxonomy, metric, harness, five offline
+families, and the mock provider are implemented and runnable offline; real providers
+(OpenAI, Gemini, Claude Code, and any OpenAI-compatible endpoint for open/offline
+models) are implemented, and a first real 6-model run is recorded above. The intent
+remains a **position + benchmark-design** contribution with a directional first
+leaderboard, not a completed empirical study.
 
 ### Claims we do NOT make yet
 
@@ -412,9 +440,11 @@ completed empirical study.
 
 ## Roadmap
 
-- [x] **Real providers.** OpenAI + Gemini adapters (function-calling aware); first honest
-      multi-vendor run recorded — **6 models, n = 75/model, 2026-07-03** (see Results). Next:
-      more seeds, larger pools, an Anthropic adapter.
+- [x] **Real providers.** OpenAI + Gemini adapters (function-calling aware) plus an
+      OpenAI-compatible provider for open/offline models (Ollama, Hugging Face router,
+      OpenRouter, custom endpoints); first honest multi-vendor run recorded —
+      **6 models, n = 75/model, 2026-07-03** (see Results). Next: more seeds, larger
+      pools, an Anthropic API adapter.
 - [ ] **Family enrichment.** Wire each family to optionally pull richer task sets from
       its sibling repo (`LLM-Time-Memory`, `ai-bot-shield`, memorywire, prompt-shield)
       when importable, with the self-contained set as the always-available fallback.
@@ -434,13 +464,18 @@ completed empirical study.
 If you use IBSC or `signalbench`, please cite (and cite the specific pillar's prior
 work — see the pillars table and [NOTICE](./NOTICE)):
 
+Archived on Zenodo with a citable DOI: **[10.5281/zenodo.21223956](https://doi.org/10.5281/zenodo.21223956)**.
+
 ```bibtex
-@misc{munirathinam2026ibsc,
+@software{munirathinam2026ibsc,
   author       = {Thamilvendhan Munirathinam},
-  title        = {In-Band Signal Compliance (IBSC): One Metric for Legitimate-Signal
-                  Uptake and Adversarial-Signal Resistance in LLM Agents},
+  title        = {In-Band Signal Compliance (IBSC) / signalbench: One Metric for
+                  Prompt Injection and Temporal Blindness},
   year         = {2026},
-  note         = {v0 benchmark scaffold; position + benchmark-design work.
+  version      = {v0.2},
+  doi          = {10.5281/zenodo.21223956},
+  url          = {https://doi.org/10.5281/zenodo.21223956},
+  note         = {Benchmark, harness, and raw results.
                   https://github.com/mthamil107/signal-compliance}
 }
 ```

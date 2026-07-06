@@ -14,6 +14,11 @@ authors:
     given-names: "Thamilvendhan"
 version: "0.2.0"
 date-released: "2026-07-06"
+doi: "10.5281/zenodo.21223956"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21223956"
+    description: "Zenodo archive (v0.2)"
 license: Apache-2.0
 repository-code: "https://github.com/mthamil107/signal-compliance"
 url: "https://mthamil107.github.io/writing/in-band-signal-compliance.html"
