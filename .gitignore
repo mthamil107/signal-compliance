@@ -82,3 +82,4 @@ results/*.json
 !results/openai_*.json
 !results/gemini_*.json
 !results/claude-code_*.json
+!results/openrouter_*.json

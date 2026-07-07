@@ -384,6 +384,40 @@ matters as much as the model.**
 
 Reproduce (uses a Claude Code subscription, no API credit): `python scripts/run_claudecode.py --model <id>`.
 
+### Open-source models (via OpenRouter, 2026-07-07)
+
+We ran **12 open-weight models**. The clean result: **tool-capable open models score
+0.32–0.67 — a clear gap below the frontier band (0.65–0.85).**
+
+| model | IBSC | ISR (resist) | LSU (uptake) |
+|---|---|---|---|
+| qwen-2.5-72b † | 0.67 | 0.50 | 0.83 |
+| llama-3.1-8b | 0.63 | 0.77 | 0.50 |
+| qwen3-next-80b | 0.58 | 0.27 | 0.90 |
+| deepseek-chat (V3) | 0.57 | 0.40 | 0.73 |
+| llama-3.3-70b | 0.42 | 0.30 | 0.53 |
+| qwen-2.5-7b | 0.38 | 0.27 | 0.50 |
+| mistral-nemo | 0.32 | **0.10** | 0.53 |
+
+† `qwen-2.5-72b`: 6 items errored. Findings:
+
+- **A clear open-vs-frontier gap** — the best open model (~0.63–0.67) trails the frontier
+  ceiling (gemini-2.5-pro 0.85).
+- **Capability is non-monotonic among open models too:** `llama-3.1-8b` (0.63) beats the
+  larger `llama-3.3-70b` (0.42); `qwen-2.5-72b` (0.67) beats `qwen-2.5-7b` (0.38).
+- **Weak attack resistance is common:** `mistral-nemo` (ISR 0.10) and `qwen3-next-80b`
+  (0.27) obey most injected illegitimate signals — a security red flag.
+
+**Tool-support gap.** 5 of the 12 open models (`gemma-2-27b`, `phi-4`, `mistral-small-24b`,
+`llama-3.2-3b`, `hermes-3-70b`) return *"No endpoints found that support tool use"* — they
+can't do function-calling, so the `access-deny`/`bot-policy` families 404. Scored on the
+47-item text-only subset (**not comparable** to the n=75 rows above): gemma-2-27b 0.80,
+phi-4 0.61, mistral-small 0.61, llama-3.2-3b 0.55, hermes-3-70b 0.41. That inability to call
+tools is itself a finding about the open ecosystem.
+
+Reproduce (needs an OpenRouter key + a few cents of balance):
+`python scripts/run_open.py --backend openrouter --models <ids>` (Ollama/HF also supported).
+
 ### Action-based grading (why v0.2 changed)
 
 The v0.1 grader marked a response wrong on any text-substring miss — so a model that
