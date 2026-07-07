@@ -78,6 +78,7 @@ class OpenAIProvider(Provider):
         timeout: float = 60.0,
         reasoning_effort: str | None = None,
         base_url: str = _ENDPOINT,
+        min_interval_s: float = 0.0,
     ):
         self.model = model
         self.name = f"openai:{model}"
@@ -86,10 +87,20 @@ class OpenAIProvider(Provider):
         self.timeout = timeout
         self.reasoning_effort = reasoning_effort
         self.base_url = base_url  # any OpenAI-compatible /chat/completions endpoint
+        self.min_interval_s = min_interval_s  # client-side throttle between requests
+        self._last_req = 0.0
+
+    def _throttle(self) -> None:
+        if self.min_interval_s > 0:
+            wait = self.min_interval_s - (time.time() - self._last_req)
+            if wait > 0:
+                time.sleep(wait)
+        self._last_req = time.time()
 
     def complete(self, item: Item) -> Response:
         if not self._api_key:
             return Response(item_id=item.item_id, text="", error="OPENAI_API_KEY not set")
+        self._throttle()
         payload: dict = {
             "model": self.model,
             "messages": item.as_messages(),

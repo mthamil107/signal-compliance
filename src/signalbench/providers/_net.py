@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import time
 import urllib.error
 import urllib.request
@@ -49,19 +50,39 @@ def load_env(path: str | None = None, *, override: bool = False) -> list[str]:
     return set_keys
 
 
+def _retry_wait(exc, attempt: int, backoff: float, cap: float) -> float:
+    """Seconds to wait before a retry: honor Retry-After if present, else
+    exponential backoff with jitter, capped."""
+    ra = None
+    try:
+        ra = exc.headers.get("Retry-After") if hasattr(exc, "headers") else None
+    except Exception:  # pragma: no cover
+        ra = None
+    if ra:
+        try:
+            return min(float(ra), cap)
+        except (TypeError, ValueError):
+            pass
+    wait = min(backoff * (2 ** attempt), cap)
+    return wait + random.uniform(0, wait * 0.25)  # jitter to de-sync bursts
+
+
 def post_json(
     url: str,
     payload: dict,
     headers: dict,
     *,
-    timeout: float = 60.0,
-    retries: int = 3,
+    timeout: float = 90.0,
+    retries: int = 4,
     backoff: float = 1.5,
+    cap: float = 8.0,
 ) -> dict:
     """POST *payload* as JSON and return the parsed JSON response.
 
-    Retries transient failures (429 and 5xx, plus URLError) with linear backoff.
-    Raises RuntimeError with the status/body on a non-retryable HTTP error.
+    Retries transient failures (429 and 5xx, plus URLError) with exponential
+    backoff + jitter, honoring a ``Retry-After`` header when the server sends one
+    (important for rate-limited free-tier endpoints). Raises RuntimeError with the
+    status/body on a non-retryable HTTP error or after exhausting retries.
     """
     data = json.dumps(payload).encode("utf-8")
     hdrs = {"Content-Type": "application/json", **headers}
@@ -79,13 +100,13 @@ def post_json(
                 pass
             if exc.code in (429, 500, 502, 503, 504) and attempt < retries - 1:
                 last_exc = RuntimeError(f"HTTP {exc.code}: {body}")
-                time.sleep(backoff * (attempt + 1))
+                time.sleep(_retry_wait(exc, attempt, backoff, cap))
                 continue
             raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
         except urllib.error.URLError as exc:
             last_exc = RuntimeError(f"URLError: {exc.reason}")
             if attempt < retries - 1:
-                time.sleep(backoff * (attempt + 1))
+                time.sleep(_retry_wait(exc, attempt, backoff, cap))
                 continue
             raise last_exc from exc
     raise last_exc or RuntimeError("post_json failed")  # pragma: no cover

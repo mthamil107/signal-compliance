@@ -44,17 +44,19 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 
 
 def _make(backend: str, model: str, args):
+    d = args.delay
     if backend == "ollama":
-        return OllamaProvider(model, host=args.host)
+        return OllamaProvider(model, host=args.host, min_interval_s=d)
     if backend == "hf":
-        return HFProvider(model)
+        return HFProvider(model, min_interval_s=d)
     if backend == "openrouter":
-        return OpenRouterProvider(model)
+        return OpenRouterProvider(model, min_interval_s=d)
     if backend == "custom":
         if not args.base_url:
             raise SystemExit("--base-url is required for --backend custom")
         return OpenAICompatibleProvider(
-            model, base_url=args.base_url, key_env=args.key_env, label=args.label
+            model, base_url=args.base_url, key_env=args.key_env,
+            label=args.label, min_interval_s=d,
         )
     raise SystemExit(f"unknown backend {backend!r}")
 
@@ -70,16 +72,28 @@ def main(argv=None) -> int:
     ap.add_argument("--label", default="open", help="leaderboard label prefix (custom)")
     ap.add_argument("--env-file", default=None)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--delay", type=float, default=4.0,
+                    help="min seconds between requests (rate-limit throttle; "
+                         "use 0 for local Ollama)")
     args = ap.parse_args(argv)
 
     load_env(args.env_file)  # picks up HF_TOKEN / OPENROUTER_API_KEY if present
     models = [m.strip() for m in args.models.split(",") if m.strip()]
     print(f"backend={args.backend}  models={models}")
 
+    from signalbench.families.time_family import TimeFamily  # noqa: E402
+    probe = TimeFamily().build_items()[0]  # 1 cheap, tool-free item
+
     for model in models:
         try:
             provider = _make(args.backend, model, args)
             print(f"\n=== {provider.name} ===")
+            # Probe once: skip models whose (often free) pool is saturated,
+            # rather than grinding 75 items against a dead endpoint.
+            pr = provider.complete(probe)
+            if pr.error:
+                print(f"  SKIP (probe failed): {(pr.error or '')[:90]}")
+                continue
             report = Runner(provider, all_families(), seed=args.seed).run()
             report.provider_name = provider.name
             safe = provider.name.replace(":", "_").replace("/", "_")
