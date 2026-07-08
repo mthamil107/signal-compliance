@@ -78,7 +78,10 @@ report a real six-model, two-vendor study ($75$ items/model, single seed). No
 model exceeds IBSC $0.85$ (mean $0.772$, range $0.650$--$0.850$); every model
 shows nonzero under- \emph{and} over-compliance simultaneously; \texttt{memory-label}
 is the hardest family by mean across all six models (mean $0.667$); and capability is not
-monotonic---a small model (\texttt{gpt-4o-mini}, $0.833$) beats larger ones. As a
+monotonic---a small model (\texttt{gpt-4o-mini}, $0.833$) beats larger ones. Crucially,
+the five signal families are all positively correlated across models (mean Pearson
+$r{=}0.73$ on bare models), evidence they measure \emph{one} underlying ability rather than
+five separate skills---the unification is empirical, not just framing. As a
 harness contrast we also run three Claude models \emph{inside a deployed agent}
 (Claude Code): the same model over-refuses legitimate signals when wrapped in an
 agent that distrusts its inputs, and only the strongest model recovers
@@ -584,6 +587,21 @@ over-refuse. The strongest model, \texttt{opus}, breaks the pattern, recovering 
 over-refusal is a small/mid-model effect, not a law: capability is what lets an agent
 tell a legitimate in-band instruction from an attack. \emph{The harness matters as much
 as the model}, and IBSC measures the difference.
+
+% ===========================================================================
+\subsection{Cross-signal transfer: one axis, not five}
+\label{sec:transfer}
+IBSC's central claim is that over- and under-compliance are one phenomenon, not five
+separate skills. This is directly testable: does competence \emph{transfer} across the
+families? For each system with full family coverage we take its five per-family SRC scores
+and compute the pairwise Pearson correlation across systems. Across the $13$ bare models
+(API + tool-capable open), \textbf{all ten family pairs are positively correlated}
+(mean $r = +0.73$, range $+0.48$ to $+0.86$); including the deployed-agent rows the mean is
+$+0.57$, still all-positive. A model good at one signal type is reliably good at the
+others---direct evidence the five families measure \emph{one underlying ability}, which is
+what makes IBSC a unified metric rather than five stapled-together benchmarks. This is a
+single-seed result over $13$--$16$ systems: a clear signal, not final proof; a stronger claim
+wants more models and multiple seeds.
 
 % ===========================================================================
 \section{Related work}

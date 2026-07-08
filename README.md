@@ -418,6 +418,21 @@ tools is itself a finding about the open ecosystem.
 Reproduce (needs an OpenRouter key + a few cents of balance):
 `python scripts/run_open.py --backend openrouter --models <ids>` (Ollama/HF also supported).
 
+### Cross-signal transfer: are the five families one axis?
+
+IBSC's core claim is that over- and under-compliance are *one* phenomenon, not five separate
+skills. That's testable: does competence **transfer** across the families — is a model good at
+one signal type good at the others?
+
+Across the **13 bare models** with full family coverage, **all 10 family pairs are positively
+correlated (mean Pearson r = +0.73, range +0.48 to +0.86)** — a model good at one signal type is
+reliably good at the rest. (Including the deployed-agent rows it's +0.57, still all-positive.)
+That's direct evidence the five families measure **one underlying ability** — which is what makes
+IBSC a *unified metric*, not five benchmarks stapled together with a name.
+
+Reproduce: `python scripts/transfer_analysis.py`. Caveat: single seed, ~13–16 systems — a clear
+signal, not final proof; a stronger claim wants more models and multiple seeds.
+
 ### Action-based grading (why v0.2 changed)
 
 The v0.1 grader marked a response wrong on any text-substring miss — so a model that
