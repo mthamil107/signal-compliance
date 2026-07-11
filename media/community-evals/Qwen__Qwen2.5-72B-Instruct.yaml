@@ -1,0 +1,59 @@
+# signalbench community eval for Qwen/Qwen2.5-72B-Instruct
+# Submit as a PR: add this file to  Qwen/Qwen2.5-72B-Instruct/.eval_results/signalbench.yaml
+# Source system id (OpenRouter): openrouter:qwen/qwen-2.5-72b-instruct   |   seed 0   |   n=75
+
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: src
+  value: 0.6667
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    name: signalbench raw per-item responses
+    user: thamilvendhan
+  notes: "SRC overall; deterministic action-based grader, no LLM judge; seed 0, n=75"
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: time
+  value: 0.8333
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    user: thamilvendhan
+  notes: "family=time; n=12"
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: access_deny
+  value: 0.5
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    user: thamilvendhan
+  notes: "family=access_deny; n=12"
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: memory_label
+  value: 0.6667
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    user: thamilvendhan
+  notes: "family=memory_label; n=12"
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: injection
+  value: 0.6667
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    user: thamilvendhan
+  notes: "family=injection; n=12"
+- dataset:
+    id: thamilvendhan/signalbench
+    task_id: bot_policy
+  value: 0.6667
+  date: "2026-07-08"
+  source:
+    url: https://huggingface.co/datasets/thamilvendhan/signalbench
+    user: thamilvendhan
+  notes: "family=bot_policy; n=12"

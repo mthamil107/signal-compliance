@@ -1,0 +1,23 @@
+# signalbench Benchmark registration — place at the ROOT of the dataset repo
+# (thamilvendhan/signalbench) to register it as a Hugging Face Benchmark.
+# NOTE: evaluation_framework must be an HF-maintained enum value. signalbench's grader is a
+# custom action-based grader (std-lib, no LLM judge). To make this fully auto-runnable you must
+# either (a) port the grader to inspect-ai format and fill field_spec/solvers/scorers below, or
+# (b) ask HF to add a 'signalbench' framework to their enum. Until then, scores are submitted as
+# pre-computed community results (still valid; they show as 'community' and aggregate on the card).
+name: signalbench (In-Band Signal Compliance)
+description: >
+  One benchmark and one metric (Signal-Response Correctness, SRC) that unify over-compliance
+  (prompt injection) and under-compliance (temporal blindness, access-deny, memory-label leaks,
+  bot-policy) for LLM agents. SRC is the balanced mean of legitimate-signal uptake and
+  illegitimate-signal resistance; a trivial always-comply or always-refuse policy scores 0.5.
+  Five families, 75 items/model, deterministic action-based grading, no LLM judge.
+evaluation_framework: inspect-ai   # TODO: complete field_spec/solvers/scorers via the inspect-ai port
+
+tasks:
+  - id: src
+  - id: time
+  - id: access_deny
+  - id: memory_label
+  - id: injection
+  - id: bot_policy
