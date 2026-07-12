@@ -14,9 +14,10 @@ rows.sort(key=lambda r: -float(r["src"]))
 
 def cell(v):
     f = float(v)
-    # shade by score: red(0) -> green(1)
+    # shade by score: red(0) -> green(1). Force dark text — the cell bg is always light,
+    # so inheriting the dark-mode light text would make numbers invisible.
     hue = int(f * 120)  # 0=red,120=green
-    return f'<td style="background:hsl({hue},70%,88%)">{f:.3f}</td>'
+    return f'<td style="background:hsl({hue},70%,88%); color:#1a1a1a">{f:.3f}</td>'
 
 
 trows = []
