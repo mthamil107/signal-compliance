@@ -3,9 +3,7 @@ title: signalbench leaderboard (IBSC)
 emoji: 🛡️
 colorFrom: indigo
 colorTo: blue
-sdk: gradio
-sdk_version: 4.44.0
-app_file: app.py
+sdk: static
 pinned: true
 license: apache-2.0
 short_description: One metric for prompt injection + temporal blindness

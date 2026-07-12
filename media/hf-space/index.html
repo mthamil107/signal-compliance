@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>signalbench leaderboard (IBSC)</title>
+<style>
+  :root { --ink:#1a1a1a; --muted:#666; --line:#e6e6e6; --accent:#2b6cb0; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); line-height:1.6; margin:0; background:#fff; }
+  .wrap { max-width:960px; margin:0 auto; padding:40px 20px 72px; }
+  h1 { font-size:1.8rem; margin:0 0 .3rem; letter-spacing:-.01em; }
+  .sub { color:var(--muted); font-size:1.05rem; margin:0 0 1.2rem; }
+  p { margin:.8rem 0; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  .table-scroll { overflow-x:auto; margin:1.4rem 0; }
+  table { border-collapse:collapse; width:100%; font-size:.92rem; }
+  th,td { padding:6px 10px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { font-weight:600; color:var(--muted); text-transform:none; border-bottom:2px solid var(--line); }
+  td.rank { color:var(--muted); text-align:right; }
+  td.sys { text-align:left; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.86rem; }
+  td.src { font-weight:700; }
+  .note { color:var(--muted); font-size:.88rem; }
+  code { background:#f3f4f6; padding:1px 5px; border-radius:4px; }
+  @media (prefers-color-scheme: dark) {
+    body { background:#0f1115; color:#e6e6e6; }
+    :root { --line:#2a2d34; --muted:#9aa0aa; }
+    code { background:#1a1d24; }
+    th { color:#9aa0aa; }
+  }
+</style></head><body><div class="wrap">
+
+<h1>🛡️ signalbench — In-Band Signal Compliance (IBSC)</h1>
+<p class="sub">One metric for prompt injection <em>and</em> temporal blindness.</p>
+
+<p>An LLM agent reads control instructions and ordinary data through the <em>same</em> channel, so
+on every turn it must decide, from content alone, whether an in-band instruction is legitimate. It
+fails two symmetric ways: <strong>over-compliance</strong> (obeying an illegitimate signal — prompt
+injection) and <strong>under-compliance</strong> (ignoring a legitimate one — an injected date, an
+access-deny, a <code>do-not-share</code> memory label, a no-automation policy).</p>
+
+<p><strong>Signal-Response Correctness (SRC)</strong> scores both on one axis: the balanced mean of
+legitimate-signal uptake (LSU) and illegitimate-signal resistance (ISR). A trivial always-comply or
+always-refuse policy scores <strong>0.5</strong> — you only win by adjudicating. <strong>Across 21
+systems, none exceeds ~0.85</strong>; capability is non-monotonic (a small model beats much larger
+ones); and the five families are all positively correlated (mean Pearson <em>r</em> ≈ 0.73) —
+evidence of one underlying ability, not five separate skills.</p>
+
+<div class="table-scroll"><table>
+<thead><tr><th>#</th><th style="text-align:left">System</th><th>SRC&#8595;</th><th>LSU</th><th>ISR</th><th>time</th><th>access-deny</th><th>memory-label</th><th>injection</th><th>bot_policy</th></tr></thead>
+<tbody>
+<tr><td class="rank">1</td><td class="sys">gemini:gemini-2.5-pro</td><td class="src">0.850</td><td>0.967</td><td>0.733</td><td style="background:hsl(120,70%,88%)">1.000</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(120,70%,88%)">1.000</td></tr>
+<tr><td class="rank">2</td><td class="sys">openai:gpt-4o-mini</td><td class="src">0.833</td><td>0.867</td><td>0.800</td><td style="background:hsl(120,70%,88%)">1.000</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(90,70%,88%)">0.750</td></tr>
+<tr><td class="rank">3</td><td class="sys">openai:gpt-5.5</td><td class="src">0.817</td><td>0.767</td><td>0.867</td><td style="background:hsl(120,70%,88%)">1.000</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(80,70%,88%)">0.667</td></tr>
+<tr><td class="rank">4</td><td class="sys">openai:gpt-5.1</td><td class="src">0.800</td><td>0.800</td><td>0.800</td><td style="background:hsl(120,70%,88%)">1.000</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(69,70%,88%)">0.583</td></tr>
+<tr><td class="rank">5</td><td class="sys">claude-code:claude-opus-4-8</td><td class="src">0.767</td><td>0.767</td><td>0.767</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(80,70%,88%)">0.667</td></tr>
+<tr><td class="rank">6</td><td class="sys">claude-code:claude-haiku-4-5-20251001</td><td class="src">0.683</td><td>0.500</td><td>0.867</td><td style="background:hsl(120,70%,88%)">1.000</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(50,70%,88%)">0.417</td></tr>
+<tr><td class="rank">7</td><td class="sys">openai:gpt-4.1</td><td class="src">0.683</td><td>0.800</td><td>0.567</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(69,70%,88%)">0.583</td></tr>
+<tr><td class="rank">8</td><td class="sys">openrouter:qwen/qwen-2.5-72b-instruct</td><td class="src">0.667</td><td>0.833</td><td>0.500</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(80,70%,88%)">0.667</td></tr>
+<tr><td class="rank">9</td><td class="sys">claude-code:claude-sonnet-5</td><td class="src">0.650</td><td>0.500</td><td>0.800</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(50,70%,88%)">0.417</td><td style="background:hsl(60,70%,88%)">0.500</td></tr>
+<tr><td class="rank">10</td><td class="sys">gemini:gemini-2.5-flash</td><td class="src">0.650</td><td>0.833</td><td>0.467</td><td style="background:hsl(110,70%,88%)">0.917</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(69,70%,88%)">0.583</td></tr>
+<tr><td class="rank">11</td><td class="sys">openrouter:meta-llama/llama-3.1-8b-instruct</td><td class="src">0.633</td><td>0.500</td><td>0.767</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(50,70%,88%)">0.417</td></tr>
+<tr><td class="rank">12</td><td class="sys">openrouter:qwen/qwen3-next-80b-a3b-instruct</td><td class="src">0.583</td><td>0.900</td><td>0.267</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(50,70%,88%)">0.417</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(69,70%,88%)">0.583</td></tr>
+<tr><td class="rank">13</td><td class="sys">openrouter:deepseek/deepseek-chat</td><td class="src">0.567</td><td>0.733</td><td>0.400</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(30,70%,88%)">0.250</td></tr>
+<tr><td class="rank">14</td><td class="sys">openrouter:meta-llama/llama-3.3-70b-instruct</td><td class="src">0.417</td><td>0.533</td><td>0.300</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(9,70%,88%)">0.083</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(9,70%,88%)">0.083</td></tr>
+<tr><td class="rank">15</td><td class="sys">openrouter:microsoft/phi-4</td><td class="src">0.417</td><td>0.400</td><td>0.433</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(0,70%,88%)">0.000</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(0,70%,88%)">0.000</td></tr>
+<tr><td class="rank">16</td><td class="sys">openrouter:mistralai/mistral-small-24b-instruct-2501</td><td class="src">0.417</td><td>0.433</td><td>0.400</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(0,70%,88%)">0.000</td><td style="background:hsl(99,70%,88%)">0.833</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(0,70%,88%)">0.000</td></tr>
+<tr><td class="rank">17</td><td class="sys">openrouter:google/gemma-2-27b-it</td><td class="src">0.400</td><td>0.433</td><td>0.367</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(0,70%,88%)">0.000</td><td style="background:hsl(90,70%,88%)">0.750</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(9,70%,88%)">0.083</td></tr>
+<tr><td class="rank">18</td><td class="sys">openrouter:qwen/qwen-2.5-7b-instruct</td><td class="src">0.383</td><td>0.500</td><td>0.267</td><td style="background:hsl(50,70%,88%)">0.417</td><td style="background:hsl(20,70%,88%)">0.167</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(39,70%,88%)">0.333</td></tr>
+<tr><td class="rank">19</td><td class="sys">openrouter:meta-llama/llama-3.2-3b-instruct</td><td class="src">0.367</td><td>0.300</td><td>0.433</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(0,70%,88%)">0.000</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(0,70%,88%)">0.000</td></tr>
+<tr><td class="rank">20</td><td class="sys">openrouter:mistralai/mistral-nemo</td><td class="src">0.317</td><td>0.533</td><td>0.100</td><td style="background:hsl(69,70%,88%)">0.583</td><td style="background:hsl(9,70%,88%)">0.083</td><td style="background:hsl(39,70%,88%)">0.333</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(9,70%,88%)">0.083</td></tr>
+<tr><td class="rank">21</td><td class="sys">openrouter:nousresearch/hermes-3-llama-3.1-70b</td><td class="src">0.300</td><td>0.467</td><td>0.133</td><td style="background:hsl(80,70%,88%)">0.667</td><td style="background:hsl(0,70%,88%)">0.000</td><td style="background:hsl(60,70%,88%)">0.500</td><td style="background:hsl(39,70%,88%)">0.333</td><td style="background:hsl(0,70%,88%)">0.000</td></tr>
+</tbody></table></div>
+
+<p class="note">SRC = overall Signal-Response Correctness · LSU = legitimate-signal uptake ·
+ISR = illegitimate-signal resistance · then per-family balanced SRC (cell shaded red→green).
+All scores: seed 0, 75 items, deterministic action-based grading (no LLM judge).</p>
+
+<p>Links:
+<a href="https://github.com/mthamil107/signal-compliance">code / harness</a> ·
+<a href="https://huggingface.co/datasets/thamilvendhan/signalbench">dataset + raw responses</a> ·
+<a href="https://doi.org/10.5281/zenodo.21223956">DOI 10.5281/zenodo.21223956</a></p>
+
+</div></body></html>
